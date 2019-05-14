@@ -1,41 +1,57 @@
 require("dotenv").config();
-var keys = require("./keys.js");
+const keys = require("./keys.js");
+const fs = require("fs");
+
 const moment = require("moment");
 moment().format();
 
-
-
 const axios = require("axios");
-var Spotify = require("node-spotify-api");
+const Spotify = require("node-spotify-api");
 
 //STAY DRY!!!
-let type = process.argv[2];
-let input = process.argv.slice(3);
+const type = process.argv[2];
+const input = process.argv.slice(3);
 
 //Sets user inputs as either the song or the band
-let bandArr = [];
+
+
+// Not working right now... (not required)
+// function appendResults(results) {
+// fs.appendFile('results.txt', results, function (err) {
+//   if (err) throw err;
+//   console.log('Results Saved!');
+// });
+// };
 
 // Spotify search function... to be called back later in switch statement
 function spotifySearch(searchTerm) {
+  switch (searchTerm) {
+    case []:
+    searchTerm = ["ace", "of", "base"];
+  break;
+
+  default:
   spotify
     .search({ type: "track", query: searchTerm, limit: 1 })
     .then(function(response) {
-      console.log("---------SONG RESPONSE--------");
       // console.log("Full: " + response.tracks.items[0].name);
       const data = response.tracks.items[0];
       songArr = [
-        `YOUR SPOTIFY RESULTS`,
         `Artist: ${data.artists[0].name}`,
         `Song Name: ${data.name}`,
         `Preview here: ${data.preview_url}`,
-        `Album: ${data.album.name}`
+        `Album: ${data.album.name}\n`
       ]
-      console.log(songArr.join('\n------------\n'))
+      console.log(`\nYOUR SPOTIFY RESULTS\n`)
+      console.log(songArr.join(`\n------------\n`))
+
     })
+
     .catch(function(err) {
       console.log(err);
+      console.log("Please enter a search term");
     });
-}
+  }
 
 function bandSearch(searchTerm) {
   axios
@@ -43,19 +59,20 @@ function bandSearch(searchTerm) {
       `https://rest.bandsintown.com/artists/${searchTerm}/events?app_id=codingbootcamp`
     )
     .then(function(response) {
-      console.log("---------BAND RESPONSE--------");
-      const data = response.data[0]
+      console.log(`\n---------BAND RESPONSE--------\n`);
+      const data = response.data[0];
       bandArr = [
         `YOUR CONCERT RESULTS`,
         `Venue: ${data.venue.name}`,
         `Location: ${data.venue.city}`,
-        `Date: ${moment(data.datetime).format('MM/DD/YYYY')}`
+        `Date: ${moment(data.datetime).format('MM/DD/YYYY')}\n`
       ];
       console.log(bandArr.join("\n----------\n"));
     })
     .catch(function(error) {
       console.log(error);
     });
+  }
 }
 
 function movieSearch(searchTerm) {
@@ -63,23 +80,21 @@ function movieSearch(searchTerm) {
     function(response) {
       const data = response.data
       movieArr = [
-        `YOUR MOVIE RESULTS`,
         `title: ${data.Title}`,
         `year: ${data.Year}`,
         `imdb rating: ${data.imdbRating}`,
+        `Rotten Tomatoes rating: ${data.Ratings[1].Value}`,
         `country: ${data.Country}`,
         `language: ${data.Language}`,
         `plot: ${data.Plot}`,
-        `actors: ${data.Actors}`
+        `actors: ${data.Actors}\n`
       ]
+      console.log(`\n---------YOUR MOVIE RESULTS-------\n`);
       console.log(movieArr.join("\n----------\n"));
+      //console.log(data)
 
     })
   };
-
-
-
-
 
 // If elses... want to change to a switch (AND DID IT!!)
 
@@ -98,20 +113,49 @@ var spotify = new Spotify(keys.spotify);
 switch (type) {
   case "spotify-this-song":
   
-  //  Takes the input of the user, concatinates the arguments,
+  //  Takes the input of the user, concatinates the process.argv array values,
   //  inserts plus signs, and passes them as arguments in our
   //  search function.
     spotifySearch(input.join("+"));
+    //Not a good solution (not required)
+  //  appendResults(spotifySearch(input.join("+")));
     break;
 
   case "concert-this":
-  //  console.log("---switch is working: CONCERT ---");
     bandSearch(input.join("+"));
 
     break;
 
   case "movie-this":
-//     console.log("---switch is working: MOVIE ---");
     movieSearch(input.join("+"));
     break;
-}
+
+    case "do-what-it-says":
+
+    fs.readFile('random.txt', 'utf-8', function(err, data) {
+      let random = data.split(",");
+      console.log(`Searching for "${random[1]}"`);
+          //console.log(random);
+      
+          switch (random[0]) {
+
+            case "spotify-this-song":
+            spotifySearch(random[1]);
+            break;
+
+            case "concert-this":
+            bandSearch(random[1]);
+            break;
+
+            case "movie-this":
+            movieSearch(random[1])
+            break;
+          }
+        });
+
+  default:
+  console.log(`\nPlease enter a search type: \n'spotify-this-song' 'concert-this' 'movie-this' 'do-what-it-says'\n`);
+  }
+
+
+
